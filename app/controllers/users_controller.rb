@@ -36,13 +36,13 @@ class UsersController < ApplicationController
     # this puts everyone in Project Tutorial, Task Demo
     ProjectUser.where( project_id: 4, user_id: current_user.id ).first_or_create
     TaskUser.where( task_id: 21, user_id: current_user.id ).first_or_create
-    @source = Source.new
+    # @source = Source.new
     correct_user do
       @mode = $ua['mode']
       @single = @user.name == 'single'
       @banned_kits = [] #KitUser.includes(:kit).where( user_id: @user.id ).map { |x| x.kit }.compact # how did they get to be nil?
-      @kits_available_by_task = Kit.where( state: :unassigned, user_id: [ @user.id, nil ] ).group(:task_id).count
-      @kits_done_by_task = Kit.where( state: :done, user_id: @user.id ).group(:task_id).count
+      @kits_available_by_task = 0 #Kit.where( state: :unassigned, user_id: [ @user.id, nil ] ).group(:task_id).count
+      @kits_done_by_task = 0 #Kit.where( state: :done, user_id: @user.id ).group(:task_id).count
       @projects = @user.projects
       @task_users = @user.task_users.includes( task: [ :project, :workflow, :kit_type ] ).joins(:task).where("tasks.status = 'active'")
       @links = {}

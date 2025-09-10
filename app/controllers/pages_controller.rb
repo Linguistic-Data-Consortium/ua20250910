@@ -2,7 +2,7 @@ class PagesController < ApplicationController
 
   def home
     if authenticated?
-      redirect_to user_path(@current_user)
+      redirect_to user_path(current_user)
     else
       if Server.count == 0
         Server.create(name: '')
