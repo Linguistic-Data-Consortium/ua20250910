@@ -1,5 +1,5 @@
 // import { init } from './init'
-import { setup } from '../settings'
+// import { setup } from '../settings'
 import { getp } from '../lib/ldcjs/getp';
 
 // import { sources_object_add_node } from '../lib/ldcjs/waveform/sources_stores';
@@ -850,7 +850,7 @@ let workflow = null;
 //     }
 
 function namespace(ldc){
-  setup(ldc);
+  // setup(ldc);
   // init(ldc);
   // .then( () => {
   //   const s = localStorage.getItem('script')
