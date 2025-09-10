@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2", ">= 8.0.2.1"
+gem "rails", "~> 8.0.2"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use sqlite3 as the database for Active Record
@@ -18,7 +18,7 @@ gem "stimulus-rails"
 gem "jbuilder"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+gem "bcrypt", "~> 3.1.7"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
@@ -61,3 +61,17 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+gem "vite_rails", "~> 3.0", ">= 3.0.17"
+gem 'haml', '5.1.2'
+gem 'jquery-rails-cdn', '1.1.2'
+gem 'paper_trail'#, '12.2.0'
+gem "aws-sdk-rails", '~> 3'
+gem "aws-sdk-s3", '~> 1'
+gem "aws-sdk-cognitoidentity", "~> 1.31"
+gem 'sequel'
+gem 'pg', '1.5.9'
+gem "recaptcha"
+gem 'mini_magick'
+gem 'image_processing', '~> 1.2'
+gem 'jwt'

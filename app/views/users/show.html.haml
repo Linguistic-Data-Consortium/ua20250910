@@ -1,0 +1,6 @@
+-content_for :head do
+  = vite_javascript_tag 'users'
+
+#permissions{ data: { "svelte-component": "users", "props": "{ \"admin\": #{admin?}, \"portal_manager\": #{portal_manager?}, \"project_manager\": #{project_manager?} }" } }
+
+#action_specific_js.users_init_show

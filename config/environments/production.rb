@@ -87,4 +87,6 @@ Rails.application.configure do
   #
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  config.cognito_identity_pool_id = ENV['COGNITO_POOL_ID']
+  config.cognito_provider_name = ENV['COGNITO_PROVIDER_NAME']
 end
