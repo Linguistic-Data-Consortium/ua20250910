@@ -1,4 +1,4 @@
-import { init } from './init'
+// import { init } from './init'
 import { setup } from '../settings'
 import { getp } from '../lib/ldcjs/getp';
 
@@ -851,7 +851,7 @@ let workflow = null;
 
 function namespace(ldc){
   setup(ldc);
-  init(ldc);
+  // init(ldc);
   // .then( () => {
   //   const s = localStorage.getItem('script')
   //   if(s){
