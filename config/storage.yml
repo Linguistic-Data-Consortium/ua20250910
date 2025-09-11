@@ -27,6 +27,7 @@ microsoft:
   storage_account_name: <%= Rails.application.credentials.dig(:azure_storage, :storage_account_name) %>
   sas_token: <%= Rails.application.credentials.dig(:azure_storage, :sas_token) %>
   container: <%= Rails.application.credentials.dig(:azure_storage, :container) %>
+  storage_access_key: foo
 
 # mirror:
 #   service: Mirror
