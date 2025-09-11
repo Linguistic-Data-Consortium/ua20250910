@@ -75,3 +75,4 @@ gem "recaptcha"
 gem 'mini_magick'
 gem 'image_processing', '~> 1.2'
 gem 'jwt'
+gem 'azure-storage-blob', '~> 2.0'

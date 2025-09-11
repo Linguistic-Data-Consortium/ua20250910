@@ -25,6 +25,8 @@ Rails.application.routes.draw do
   get 'password_resets/edit'
 
   get :echo, to: 'pages#echo'
+  get '/azure_audio_url', to: 'pages#azure_audio_url'
+  post '/azure_transcribe', to: 'pages#azure_transcribe'
   root 'pages#home'
   get '/signup', to: 'users#new'
   post '/signup', to: 'users#create'

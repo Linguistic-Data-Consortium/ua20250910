@@ -610,6 +610,216 @@
     //       );
     // }
 
+    // Audio player state and functions
+    let audioUrl = $state('');
+    let audioSrc = $state('');
+    let audioElement = $state();
+    let currentFileName = $state('');
+    let volume = $state(1.0);
+    let playbackRate = $state(1.0);
+    let audioError = $state('');
+    let recentAudioFiles = $state([]);
+    let signedUrl = $state('');
+    let urlExpiry = $state('');
+    let transcriptionResult = $state('');
+    let isTranscribing = $state(false);
+
+    // Load audio file from URL
+    async function loadAudioFile() {
+        if (!audioUrl.trim()) {
+            toast.error('Please enter an audio file URL or blob name');
+            return;
+        }
+
+        audioError = '';
+        signedUrl = '';
+        urlExpiry = '';
+        const input = audioUrl.trim();
+        
+        // Check if input is a full URL or just a blob name
+        let finalUrl = input;
+        let isSignedUrl = false;
+        
+        try {
+            // If it's not a full URL, get signed URL from Rails
+            if (!input.startsWith('http')) {
+                const response = await fetch(`/azure_audio_url?blob_name=${encodeURIComponent(input)}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Server error details:', errorData);
+                    toast.error(`Server Error: ${errorData.error || `HTTP ${response.status}`}`);
+                    
+                    // Show service class info if available
+                    if (errorData.service_class) {
+                        console.log('Current service class:', errorData.service_class);
+                        toast.info(`Current storage service: ${errorData.service_class}`);
+                    }
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Server response:', data);
+                finalUrl = data.url;
+                signedUrl = data.url;
+                isSignedUrl = true;
+                
+                // Calculate expiry time (1 hour from now)
+                const expiryTime = new Date();
+                expiryTime.setHours(expiryTime.getHours() + 1);
+                urlExpiry = expiryTime.toLocaleString();
+                
+                toast.success(`Generated signed URL for Azure blob (Service: ${data.service_class || 'Unknown'})`);
+            } else {
+                // If it's already a full URL, check if it's a signed URL
+                if (input.includes('sig=')) {
+                    signedUrl = input;
+                    urlExpiry = 'Unknown expiry';
+                }
+            }
+        } catch (error) {
+            console.error('Error getting signed URL:', error);
+            toast.error(`Failed to get audio URL: ${error.message}`);
+            return;
+        }
+
+        audioSrc = finalUrl;
+        
+        // Extract filename from original input or URL
+        try {
+            if (input.startsWith('http')) {
+                const url = new URL(input);
+                const pathname = url.pathname;
+                currentFileName = pathname.split('/').pop() || 'Unknown file';
+            } else {
+                currentFileName = input.split('/').pop() || 'Unknown file';
+            }
+        } catch (e) {
+            currentFileName = input.split('/').pop() || 'Unknown file';
+        }
+
+        // Add to recent files (avoid duplicates)
+        const existingIndex = recentAudioFiles.findIndex(f => f.originalInput === input);
+        if (existingIndex >= 0) {
+            recentAudioFiles.splice(existingIndex, 1);
+        }
+        
+        recentAudioFiles.unshift({
+            name: currentFileName,
+            url: finalUrl,
+            originalInput: input,
+            timestamp: new Date()
+        });
+
+        // Keep only last 10 files
+        if (recentAudioFiles.length > 10) {
+            recentAudioFiles = recentAudioFiles.slice(0, 10);
+        }
+
+        toast.success(`Loading: ${currentFileName}`);
+    }
+
+    // Load a recent file
+    function loadRecentFile(originalInput) {
+        audioUrl = originalInput;
+        loadAudioFile();
+    }
+
+    // Copy signed URL to clipboard
+    async function copySignedUrl() {
+        try {
+            await navigator.clipboard.writeText(signedUrl);
+            toast.success('Signed URL copied to clipboard');
+        } catch (error) {
+            console.error('Failed to copy to clipboard:', error);
+            toast.error('Failed to copy URL to clipboard');
+        }
+    }
+
+    // Transcribe audio using Azure Speech Services
+    async function transcribeAudio() {
+        if (!audioUrl.trim()) {
+            toast.error('Please load an audio file first');
+            return;
+        }
+
+        isTranscribing = true;
+        transcriptionResult = '';
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const response = await fetch('/azure_transcribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    blob_name: audioUrl.trim()
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            transcriptionResult = data.transcription;
+            toast.success('Transcription completed!');
+
+        } catch (error) {
+            console.error('Transcription error:', error);
+            toast.error(`Transcription failed: ${error.message}`);
+            transcriptionResult = `Error: ${error.message}`;
+        } finally {
+            isTranscribing = false;
+        }
+    }
+
+    // Update volume
+    function updateVolume() {
+        if (audioElement) {
+            audioElement.volume = volume;
+        }
+    }
+
+    // Update playback rate
+    function updatePlaybackRate() {
+        if (audioElement) {
+            audioElement.playbackRate = playbackRate;
+        }
+    }
+
+    // Handle audio errors
+    $effect(() => {
+        if (audioElement) {
+            audioElement.addEventListener('error', (e) => {
+                console.error('Audio error:', e);
+                audioError = 'Failed to load audio file. Please check the URL and ensure the file is accessible.';
+                toast.error('Error loading audio file');
+            });
+
+            audioElement.addEventListener('loadstart', () => {
+                audioError = '';
+            });
+
+            audioElement.addEventListener('canplay', () => {
+                updateVolume();
+                updatePlaybackRate();
+                toast.success('Audio loaded successfully');
+            });
+        }
+    });
+
 </script>
 
 <style>
@@ -952,6 +1162,14 @@
                 </Tooltip.Root>
             </Tooltip.Provider>
         </Tabs.Trigger>
+        <Tabs.Trigger value="audio">
+            <Tooltip.Provider>
+                <Tooltip.Root>
+                    <Tooltip.Trigger>Audio</Tooltip.Trigger>
+                    <Tooltip.Content>play audio files from Azure storage</Tooltip.Content>
+                </Tooltip.Root>
+            </Tooltip.Provider>
+        </Tabs.Trigger>
     </Tabs.List>
     <Tabs.Content value="tasks">
         <Help {help}>
@@ -1159,6 +1377,171 @@
                 {/if}
             {/await}
         {/if}
+    </Tabs.Content>
+    <Tabs.Content value="audio">
+        <Help {help}>
+            {#snippet content()}
+            <div>
+                <p>Audio Player</p>
+                <p>Play audio files stored in your Azure Storage container</p>
+                <p>Enter the Azure blob URL or file path to play audio files</p>
+            </div>
+            {/snippet}
+        </Help>
+        <div class="max-w-4xl mx-auto p-6">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-4">Azure Audio Player</h2>
+                <div class="space-y-4">
+                    <div>
+                        <Label for="azure-audio-url">Azure Audio File URL or Path</Label>
+                        <div class="flex space-x-2 mt-2">
+                            <Input 
+                                type="text" 
+                                id="azure-audio-url" 
+                                bind:value={audioUrl}
+                                placeholder="audio/filename.mp3 or full Azure URL"
+                                class="flex-1"
+                            />
+                            <Button onclick={loadAudioFile} variant="secondary">Load</Button>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-1">
+                            Enter either a blob name (e.g., "audio/file.mp3") or a full Azure URL
+                        </div>
+                    </div>
+                    
+                    {#if audioSrc}
+                        <div class="border rounded-lg p-4 bg-gray-50">
+                            <h3 class="text-lg font-semibold mb-3">Now Playing: {currentFileName}</h3>
+                            
+                            {#if signedUrl}
+                                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="text-sm font-medium text-blue-800">Signed URL:</span>
+                                        <Button 
+                                            onclick={copySignedUrl}
+                                            variant="outline" 
+                                            size="sm"
+                                            class="h-6 px-2 text-xs"
+                                        >
+                                            Copy
+                                        </Button>
+                                    </div>
+                                    <div class="text-xs text-blue-700 font-mono break-all bg-white p-2 rounded border">
+                                        {signedUrl}
+                                    </div>
+                                    <div class="text-xs text-blue-600 mt-1">
+                                        Expires: {urlExpiry || 'in 1 hour'}
+                                    </div>
+                                </div>
+                            {/if}
+                            <audio 
+                                bind:this={audioElement}
+                                controls 
+                                class="w-full"
+                                preload="metadata"
+                            >
+                                <source src={audioSrc} type="audio/mpeg" />
+                                <source src={audioSrc} type="audio/wav" />
+                                <source src={audioSrc} type="audio/ogg" />
+                                Your browser does not support the audio element.
+                            </audio>
+                            
+                            <div class="mt-4 space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Volume</span>
+                                    <input 
+                                        type="range" 
+                                        min="0" 
+                                        max="1" 
+                                        step="0.1" 
+                                        bind:value={volume}
+                                        onchange={updateVolume}
+                                        class="w-32"
+                                    />
+                                </div>
+                                
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Playback Speed</span>
+                                    <select bind:value={playbackRate} onchange={updatePlaybackRate} class="border rounded px-2 py-1">
+                                        <option value="0.5">0.5x</option>
+                                        <option value="0.75">0.75x</option>
+                                        <option value="1">1x</option>
+                                        <option value="1.25">1.25x</option>
+                                        <option value="1.5">1.5x</option>
+                                        <option value="2">2x</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="flex justify-center mt-4">
+                                    <Button 
+                                        onclick={transcribeAudio}
+                                        disabled={isTranscribing}
+                                        variant="default"
+                                        class="px-6"
+                                    >
+                                        {#if isTranscribing}
+                                            <div class="flex items-center">
+                                                <div class="w-4 h-4 mr-2"><Spinner /></div>
+                                                Transcribing...
+                                            </div>
+                                        {:else}
+                                            🎤 Transcribe Audio
+                                        {/if}
+                                    </Button>
+                                </div>
+                            </div>
+                            
+                            {#if audioError}
+                                <div class="mt-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                                    Error loading audio: {audioError}
+                                </div>
+                            {/if}
+                            
+                            {#if transcriptionResult}
+                                <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="text-lg font-semibold text-green-800">Transcription Result</h4>
+                                        <Button 
+                                            onclick={() => navigator.clipboard.writeText(transcriptionResult)}
+                                            variant="outline" 
+                                            size="sm"
+                                            class="h-6 px-2 text-xs"
+                                        >
+                                            Copy
+                                        </Button>
+                                    </div>
+                                    <div class="text-sm text-green-700 bg-white p-3 rounded border max-h-48 overflow-y-auto">
+                                        {transcriptionResult}
+                                    </div>
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
+                    
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-semibold mb-3">Recent Audio Files</h3>
+                        {#if recentAudioFiles.length > 0}
+                            <div class="space-y-2">
+                                {#each recentAudioFiles as file}
+                                    <div class="flex justify-between items-center p-2 border rounded hover:bg-gray-50">
+                                        <span class="text-sm truncate flex-1 mr-2">{file.name}</span>
+                                        <Button 
+                                            onclick={() => loadRecentFile(file.originalInput)}
+                                            variant="outline"
+                                            size="sm"
+                                        >
+                                            Play
+                                        </Button>
+                                    </div>
+                                {/each}
+                            </div>
+                        {:else}
+                            <p class="text-gray-500 text-sm">No recent audio files</p>
+                        {/if}
+                    </div>
+                </div>
+            </div>
+        </div>
     </Tabs.Content>
 </Tabs.Root>
 

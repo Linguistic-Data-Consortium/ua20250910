@@ -21,12 +21,12 @@ local:
 #   credentials: <%= Rails.root.join("path/to/gcs.keyfile") %>
 #   bucket: your_own_bucket-<%= Rails.env %>
 
-# Use bin/rails credentials:edit to set the Azure Storage secret (as azure_storage:storage_access_key)
-# microsoft:
-#   service: AzureStorage
-#   storage_account_name: your_account_name
-#   storage_access_key: <%= Rails.application.credentials.dig(:azure_storage, :storage_access_key) %>
-#   container: your_container_name-<%= Rails.env %>
+# Use bin/rails credentials:edit to set the Azure Storage SAS token and URL
+microsoft:
+  service: AzureStorage
+  storage_account_name: <%= Rails.application.credentials.dig(:azure_storage, :storage_account_name) %>
+  sas_token: <%= Rails.application.credentials.dig(:azure_storage, :sas_token) %>
+  container: <%= Rails.application.credentials.dig(:azure_storage, :container) %>
 
 # mirror:
 #   service: Mirror
