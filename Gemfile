@@ -70,7 +70,7 @@ gem "aws-sdk-rails", '~> 3'
 gem "aws-sdk-s3", '~> 1'
 gem "aws-sdk-cognitoidentity", "~> 1.31"
 gem 'sequel'
-gem 'pg', '1.5.9'
+gem 'pg', '1.6.2'
 gem "recaptcha"
 gem 'mini_magick'
 gem 'image_processing', '~> 1.2'
