@@ -22,12 +22,12 @@ local:
 #   bucket: your_own_bucket-<%= Rails.env %>
 
 # Use bin/rails credentials:edit to set the Azure Storage SAS token and URL
-microsoft:
-  service: AzureStorage
-  storage_account_name: <%= Rails.application.credentials.dig(:azure_storage, :storage_account_name) %>
-  sas_token: <%= Rails.application.credentials.dig(:azure_storage, :sas_token) %>
-  container: <%= Rails.application.credentials.dig(:azure_storage, :container) %>
-  storage_access_key: foo
+# Commented out - using direct Azure API calls instead of ActiveStorage
+# microsoft:
+#   service: AzureStorage
+#   storage_account_name: <%= Rails.application.credentials.dig(:azure_storage, :storage_account_name) %>
+#   sas_token: <%= Rails.application.credentials.dig(:azure_storage, :sas_token) %>
+#   container: <%= Rails.application.credentials.dig(:azure_storage, :container) %>
 
 # mirror:
 #   service: Mirror
