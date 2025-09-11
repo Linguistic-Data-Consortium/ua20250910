@@ -3,7 +3,7 @@ class TaskUsersController < ApplicationController
   # before_action :authenticate
   before_action :task_admin, :except => [ :get, :read_only, :create, :destroy, :update ]
 
-  include NodesHelper
+  # include NodesHelper
 
   def show
     respond_to do |format|

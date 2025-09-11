@@ -4,7 +4,7 @@ class TasksController < ApplicationController
   before_action :task_admin, :only => [ :reassign_many_kits ]
   after_action { flash.discard if request.xhr? }
 
-  include NodesHelper
+  # include NodesHelper
   # include TasksHelper
   # include MarkdownAdapter
 
