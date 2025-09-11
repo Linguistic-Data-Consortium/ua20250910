@@ -7,7 +7,7 @@ image: jdwright/ua20250910
 # Deploy to these servers.
 servers:
   web:
-    - 172.171.244.39
+    - azure.ldcresearch.org
   # job:
   #   hosts:
   #     - 192.168.0.1
@@ -19,7 +19,7 @@ servers:
 # Note: If using Cloudflare, set encryption mode in SSL/TLS setting to "Full" to enable CF-to-app encryption.
 proxy:
   ssl: true
-  host: 172.171.244.39
+  host: azure.ldcresearch.org
 
 # Credentials for your image host.
 registry:
