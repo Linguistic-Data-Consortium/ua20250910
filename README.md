@@ -4,7 +4,7 @@ This is a stripped down app that was used specifically to test an Azure deployme
 
 # VM
 
-The VM has to allow ssh, http, and https traffic, and docker must be installed.  The relevant user must be able to use docker, so in this deployment, `usermod -aG docker ubuntu` was run on the VM after installing docker.  If not using the `ubuntu` user, change the name in `deploy/config.yml`.  If using `root`, that section can be commented out.  Before installing docker, you probably need these linux packages installed:
+The VM has to allow ssh, http, and https traffic, and docker must be installed.  The relevant user must be able to use docker, so in this deployment, `usermod -aG docker azureuser` was run on the VM after installing docker.  If not using the `azureuser` user, change the name in `deploy/config.yml`.  If using `root`, that section can be commented out.  Before installing docker, you probably need these linux packages installed:
 
     apt-transport-https
     ca-certificates
@@ -20,4 +20,4 @@ Kamal takes care of the deployment details, using docker.  You'll need to use do
 
     export KAMAL_REGISTRY_PASSWORD=foo
 
-The web server and host in the config file should have the public IP, or the host/domain name, of the VM.  After these details are set, you can deploy with `bin/kamal setup`.
+The web server and host in the config file should have the public IP, or the host/domain name, of the VM.  After these details are set, you can deploy with `bin/kamal setup`, and deployments after that with `bin/kamal deploy`.  To summarize the kamal config changes, you need to change the image name on line 5, the VM address on lines 10 and 22, the username on line 28, and possibly the username on line 92.
