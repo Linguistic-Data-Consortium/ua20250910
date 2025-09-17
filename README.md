@@ -14,6 +14,20 @@ The VM has to allow ssh, http, and https traffic, and docker must be installed. 
 
 You should also add a public key for your local user to the .ssh directory on the VM to allow for seamless login during deployment.
 
+# Azure Storage and Transcription
+
+The azure credentials in this repo have this structure:
+
+    azure_storage:
+      storage_account_name: foo
+      sas_token: bar
+      container: baz
+    azure_speech:
+      key: foo
+      region: bar
+
+The credentials are encrypted in `config/credentials.yml.enc`, and can't be accessed without `config/master.key`, which is not checked into the repo.  You should delete the credentials file and run `bin/rails credentials:edit` (set your editor with the `EDITOR` environment variable), which will create those two files.  Enter the appropriate credentials, and save.  You should take this step before trying to deploy, although the credentials don't need to be correct just to test deployment, so you could postpone configuring storage and transcription.
+
 # Kamal
 
 Kamal takes care of the deployment details, using docker.  You'll need to use dockerhub or some alternative.  You need to create an image on dockerhub, and put your account user and image name in `deploy/config.yml`.  Create a read/write access token on dockerhub.  If the the token was `foo`, you could add it to your shell with
@@ -25,4 +39,8 @@ The web server and host in the config file should have the public IP, or the hos
 # Account Creation
 
 When creating an account, the flash message will say to check for an account activation email.  Since email hasn't been configured, you won't receive an email, but the activation step isn't necessary for this simplified app, and you can go ahead and log in.  In the full version of this app, email would need to be configured so activation is possible.
+
+# Usage
+
+The running app has limited functionality.  You should see an `Audio` tab, where you can put the object name of a wav file in Azure storage.  If you've configured storage and transcription (see above), you should be able to play back the audio and retrieve its transcription.
 
