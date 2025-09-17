@@ -21,3 +21,8 @@ Kamal takes care of the deployment details, using docker.  You'll need to use do
     export KAMAL_REGISTRY_PASSWORD=foo
 
 The web server and host in the config file should have the public IP, or the host/domain name, of the VM.  After these details are set, you can deploy with `bin/kamal setup`, and deployments after that with `bin/kamal deploy`.  To summarize the kamal config changes, you need to change the image name on line 5, the VM address on lines 10 and 22, the username on line 28, and possibly the username on line 92.
+
+# Account Creation
+
+When creating an account, the flash message will say to check for an account activation email.  Since email hasn't been configured, you won't receive an email, but the activation step isn't necessary for this simplified app, and you can go ahead and log in.  In the full version of this app, email would need to be configured so activation is possible.
+
