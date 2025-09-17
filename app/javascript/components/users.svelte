@@ -741,7 +741,7 @@
         }
     }
 
-    // Transcribe audio using Azure Speech Services
+    // Transcribe audio using Azure Speech Services (Async)
     async function transcribeAudio() {
         if (!audioUrl.trim()) {
             toast.error('Please load an audio file first');
@@ -754,7 +754,9 @@
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             
-            const response = await fetch('/azure_transcribe', {
+            // Step 1: Start transcription job
+            toast.info('Starting transcription job...');
+            const startResponse = await fetch('/azure_transcribe_async', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -767,13 +769,67 @@
                 })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP ${response.status}`);
+            if (!startResponse.ok) {
+                const errorData = await startResponse.json();
+                throw new Error(errorData.error || `HTTP ${startResponse.status}`);
             }
 
-            const data = await response.json();
-            transcriptionResult = data.transcription;
+            const startData = await startResponse.json();
+            const jobId = startData.job_id;
+            
+            toast.success(`Transcription job started (ID: ${jobId}). Polling for results...`);
+
+            // Step 2: Poll for completion
+            const pollForResult = async (jobId) => {
+                const maxAttempts = 36; // 3 minutes max (5s intervals)
+                let attempts = 0;
+
+                const poll = async () => {
+                    if (attempts >= maxAttempts) {
+                        throw new Error('Transcription timeout after 3 minutes');
+                    }
+
+                    attempts++;
+                    const statusResponse = await fetch(`/azure_transcribe/status/${jobId}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    if (!statusResponse.ok) {
+                        const errorData = await statusResponse.json();
+                        throw new Error(errorData.error || `HTTP ${statusResponse.status}`);
+                    }
+
+                    const statusData = await statusResponse.json();
+                    
+                    switch (statusData.status) {
+                        case 'completed':
+                            return statusData.transcription;
+                        
+                        case 'failed':
+                            throw new Error(statusData.error || 'Transcription failed');
+                        
+                        case 'processing':
+                            toast.info(`Transcription in progress... (${attempts}/${maxAttempts})`);
+                            // Wait 5 seconds before next poll
+                            await new Promise(resolve => setTimeout(resolve, 5000));
+                            return poll();
+                        
+                        default:
+                            toast.warning(`Unknown status: ${statusData.status}, continuing to poll...`);
+                            await new Promise(resolve => setTimeout(resolve, 5000));
+                            return poll();
+                    }
+                };
+
+                return poll();
+            };
+
+            // Get the transcription result
+            const result = await pollForResult(jobId);
+            transcriptionResult = result;
             toast.success('Transcription completed!');
 
         } catch (error) {

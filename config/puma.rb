@@ -39,3 +39,10 @@ plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
 pidfile ENV["PIDFILE"] if ENV["PIDFILE"]
+
+# Set timeout for long-running requests (like Azure transcription)
+# Default is 60 seconds, increase to 6 minutes for transcription
+if ENV.fetch("RAILS_ENV", "development") == "production"
+  # In production, set worker timeout to handle long transcription requests
+  worker_timeout 360 # 6 minutes
+end

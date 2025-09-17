@@ -118,6 +118,8 @@ class PagesController < ApplicationController
     # Step 1: Create transcription job
     http = Net::HTTP.new(URI(batch_api_url).host, 443)
     http.use_ssl = true
+    http.read_timeout = 30  # 30 second timeout for individual HTTP requests
+    http.open_timeout = 10  # 10 second timeout for connection
     
     request = Net::HTTP::Post.new(batch_api_url)
     request['Ocp-Apim-Subscription-Key'] = speech_key
@@ -147,7 +149,7 @@ class PagesController < ApplicationController
     Rails.logger.info "Transcription job created: #{job_url}"
     
     # Step 2: Poll for completion (with timeout)
-    max_wait_time = 300 # 5 minutes timeout
+    max_wait_time = 120 # 2 minutes timeout (reduced to avoid gateway timeouts)
     start_time = Time.current
     
     loop do
@@ -196,6 +198,8 @@ class PagesController < ApplicationController
             content_uri = URI(content_url)
             content_http = Net::HTTP.new(content_uri.host, content_uri.port)
             content_http.use_ssl = content_uri.scheme == 'https'
+            content_http.read_timeout = 30
+            content_http.open_timeout = 10
             
             result_request = Net::HTTP::Get.new(content_uri.path + (content_uri.query ? "?#{content_uri.query}" : ""))
             result_request['Ocp-Apim-Subscription-Key'] = speech_key
