@@ -8,9 +8,10 @@
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.4.3
+ARG RUBY_VERSION=3.4.7
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
+RUN sed -i 's/http/https/g' /etc/apt/sources.list.d/debian.sources
 # Rails app lives here
 WORKDIR /rails
 
@@ -70,10 +71,6 @@ RUN bundle exec bootsnap precompile app/ lib/
 # end bundled
 
 
-FROM bundled AS build
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
-# end build
 
 
 ### create a dev version
@@ -84,9 +81,21 @@ CMD ["bin/rails", "s", "-b", "0.0.0.0"]
 #CMD ["sleep", "300"]
 # end dev
 
+FROM bundled AS build
+# Precompiling assets for production without requiring secret RAILS_MASTER_KEY
+RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+# don't need node modules at runtime in production
+RUN rm -Rf node_modules
+
+# end build
+FROM docker.io/library/ruby:$RUBY_VERSION-slim AS deploy_base
+RUN sed -i 's/http/https/g' /etc/apt/sources.list.d/debian.sources
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y libjemalloc2 libvips libpq5 libsqlite3-0 && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Final stage for app image
-FROM base
+FROM deploy_base AS deployment
 # Set production environment
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
@@ -96,7 +105,7 @@ ENV RAILS_ENV="production" \
 # Copy built artifacts: gems, application
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
-
+WORKDIR /rails
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
@@ -107,5 +116,5 @@ USER 1000:1000
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 # Start server via Thruster by default, this can be overwritten at runtime
-EXPOSE 80
+EXPOSE 3000
 CMD ["./bin/thrust", "./bin/rails", "server"]
